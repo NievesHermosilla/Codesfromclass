@@ -1,0 +1,936 @@
+[9:30 AM] Pedreira, Brenda (Cognizant)
+
+package com.example.c56;
+
+ 
+
+import androidx.appcompat.app.AppCompatActivity;
+
+import androidx.core.app.ActivityCompat;
+
+import androidx.core.content.ContextCompat;
+
+import android.Manifest;
+
+import android.app.Activity;
+
+import android.content.Intent;
+
+import android.content.pm.PackageManager;
+
+import android.os.Bundle;
+
+import android.view.View;
+
+import android.widget.ImageView;
+
+import android.widget.RelativeLayout;
+
+import android.widget.TextView;
+
+import org.json.JSONException; //Used for the contact picker
+
+import org.json.JSONObject; //Used for the contact picker
+
+ 
+
+import com.bumptech.glide.Glide;
+
+import com.example.c56.ContactItem; // Import your ContactItem class
+
+import com.example.c56.ContactRecyclerView; // Import your ContactRecyclerView class
+
+ 
+
+public class MainActivity extends AppCompatActivity {
+
+ 
+
+    // Define a request code (you can choose any unique value)
+
+    private static final int YOUR_REQUEST_CODE = 1;
+
+ 
+
+    // Import url
+
+    private String url;
+
+    private String pfp;
+
+ 
+
+    // Import ImageViews
+
+    private ImageView textViewImage;
+
+    private ImageView listViewImage;
+
+    private ImageView recyclerViewImage;
+
+    private ImageView imageViewPFP; //Used for the contact picker
+
+ 
+
+    // Import clickable layouts
+
+    private RelativeLayout textViewLayout;
+
+    private RelativeLayout listViewLayout;
+
+    private RelativeLayout recyclerViewLayout;
+
+    private RelativeLayout returnContactLayout; //Used for the contact picker
+
+ 
+
+    private TextView name;
+
+    private TextView number;
+
+ 
+
+    @Override
+
+    protected void onCreate(Bundle savedInstanceState) {
+
+        super.onCreate(savedInstanceState);
+
+        setContentView(R.layout.activity_main);
+
+ 
+
+        // Import ImageViews
+
+        textViewImage = findViewById(R.id.textViewImage);
+
+        listViewImage = findViewById(R.id.listViewImage);
+
+        recyclerViewImage = findViewById(R.id.recyclerViewImage);
+
+        imageViewPFP = findViewById(R.id.imageViewPFP); //Used for the contact picker
+
+ 
+
+        // Import clickable layouts
+
+        textViewLayout = findViewById(R.id.textViewLayout);
+
+        listViewLayout = findViewById(R.id.listViewLayout);
+
+        recyclerViewLayout = findViewById(R.id.recyclerViewLayout);
+
+        returnContactLayout = findViewById(R.id.returnContactLayout); //Used for the contact picker
+
+ 
+
+        name = findViewById(R.id.name); //Used for the contact picker
+
+        number = findViewById(R.id.number); //Used for the contact picker
+
+ 
+
+        // Example: Starting the ContactRecyclerView activity
+
+        icon(textViewImage, textViewLayout, ContactRecyclerView.class);
+
+        icon(listViewImage, listViewLayout, ContactListView.class); // You may have another activity for ListView
+
+        icon(recyclerViewImage, recyclerViewLayout, ContactRecyclerView.class);
+
+ 
+
+        checkPermission();
+
+    }
+
+ 
+
+ 
+
+// Contact picker code starts here
+
+    @Override
+
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+
+        super.onActivityResult(requestCode, resultCode, data);
+
+ 
+
+        if (requestCode == YOUR_REQUEST_CODE) {
+
+            if (resultCode == RESULT_OK) {
+
+                // Handle the result here
+
+                String selectedContactJson = data.getStringExtra("selectedContact");
+
+                if (selectedContactJson != null) {
+
+                    ContactItem selectedContact = ContactItem.fromJsonString(selectedContactJson);
+
+                    // Now you can work with the selectedContact object.
+
+ 
+
+                    // Hide the clickable layouts
+
+                    textViewLayout.setVisibility(View.GONE);
+
+                    listViewLayout.setVisibility(View.GONE);
+
+                    recyclerViewLayout.setVisibility(View.GONE);
+
+ 
+
+                    // Show the returnContactLayout
+
+                    returnContactLayout.setVisibility(View.VISIBLE);
+
+ 
+
+                    // Populate the TextViews with contact details
+
+                    name.setText(selectedContact.getName());
+
+                    number.setText(selectedContact.getNumber());
+
+ 
+
+                    // Load the contact's image using Glide
+
+                    pfp = getResources().getString(R.string.pfp);
+
+                    Glide.with(this).load(pfp).into(imageViewPFP);
+
+                }
+
+            }
+
+        }
+
+    }
+
+ 
+
+//Contact picker code ends here
+
+
+
+    private void icon(ImageView imageView, RelativeLayout relativeLayout, final Class<?> activity) {
+
+        url = getResources().getString(R.string.icon);
+
+        // Load the icon
+
+        Glide.with(this).load(url).into(imageView);
+
+ 
+
+        // Click Listener for the layout
+
+        relativeLayout.setOnClickListener(v -> startActivity(activity));
+
+    }
+
+ 
+
+    private void startActivity(final Class<?> activity) {
+
+        if (checkPermission()) {
+
+            Intent intent = new Intent(this, activity);
+
+            startActivityForResult(intent, YOUR_REQUEST_CODE);
+
+        }
+
+    }
+
+ 
+
+    // Check and request permission
+
+    private boolean checkPermission() {
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
+
+            // Permission denied
+
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_CONTACTS}, 1);
+
+            return false;
+
+        }
+
+        // Permission granted
+
+        return true;
+
+    }
+
+}
+
+[9:30 AM] Pedreira, Brenda (Cognizant)
+
+Main
+
+[9:30 AM] Pedreira, Brenda (Cognizant)
+
+package com.example.c56;
+
+ 
+
+import androidx.annotation.NonNull;
+
+import androidx.appcompat.app.AppCompatActivity;
+
+import androidx.recyclerview.widget.LinearLayoutManager;
+
+import androidx.recyclerview.widget.RecyclerView;
+
+ 
+
+import android.content.Intent;
+
+import android.database.Cursor;
+
+import android.os.Bundle;
+
+import android.provider.ContactsContract;
+
+import android.util.Log;
+
+import android.view.MotionEvent;
+
+import android.view.View;
+
+ 
+
+import java.util.ArrayList;
+
+import java.util.List;
+
+ 
+
+public class ContactRecyclerView extends AppCompatActivity {
+
+ 
+
+    private RecyclerView recyclerView;
+
+ 
+
+    private ContactAdapter contactAdapter;
+
+    private List<ContactItem> contactList;
+
+ 
+
+    String noData;
+
+ 
+
+    @Override
+
+    protected void onCreate(Bundle savedInstanceState) {
+
+        super.onCreate(savedInstanceState);
+
+        setContentView(R.layout.activity_contact_recycler_view);
+
+ 
+
+        noData = getResources().getString(R.string.noData);
+
+        recyclerView = findViewById(R.id.recyclerView);
+
+ 
+
+        contactList = new ArrayList<>();
+
+        contactAdapter = new ContactAdapter(contactList);
+
+ 
+
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+        recyclerView.setAdapter(contactAdapter);
+
+ 
+
+ 
+
+//Contact picker code starts here
+
+        recyclerView.addOnItemTouchListener(new RecyclerView.OnItemTouchListener() {
+
+            @Override
+
+            public boolean onInterceptTouchEvent(RecyclerView rv, MotionEvent e) {
+
+                return true;
+
+            }
+
+ 
+
+            @Override
+
+            public void onTouchEvent(RecyclerView rv, MotionEvent e) {
+
+                Log.e("tag","on touch event");
+
+                if (e.getAction() == MotionEvent.ACTION_UP) {
+
+                    View childView = recyclerView.findChildViewUnder(e.getX(), e.getY());
+
+                    if (childView != null) {
+
+                        int position = recyclerView.getChildAdapterPosition(childView);
+
+                        ContactItem selectedContact = contactList.get(position);
+
+ 
+
+                        String selectedContactJson = selectedContact.toJsonString();
+
+ 
+
+                        Intent intent = new Intent();
+
+                        intent.putExtra("selectedContact", selectedContactJson);
+
+                        setResult(RESULT_OK, intent);
+
+ 
+
+                        finish();
+
+                    }
+
+                }
+
+            }
+
+ 
+
+            @Override
+
+            public void onRequestDisallowInterceptTouchEvent(boolean disallowIntercept) {
+
+            }
+
+        });
+
+//Contact picker code ends here
+
+ 
+
+ 
+
+        displayContacts();
+
+    }
+
+ 
+
+    private void displayContacts() {
+
+        //Define the name and number columns you wish to gather
+
+        String[] projection = {
+
+                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+
+                ContactsContract.CommonDataKinds.Phone.NUMBER
+
+        };
+
+        //Query the contacts database
+
+        Cursor cursor = getContentResolver().query(
+
+                ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+
+                projection,
+
+                null,
+
+                null,
+
+                null
+
+        );
+
+ 
+
+        //Cursor null protection
+
+        if (cursor != null) {
+
+            //Get column indexes
+
+            int nameIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME);
+
+            int numberIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER);
+
+ 
+
+            //Columns null protection
+
+            if (nameIndex != -1 && numberIndex != -1) {
+
+                while (cursor.moveToNext()) {
+
+                    //get the strings from the column index and move to next rows
+
+                    String name = cursor.getString(nameIndex);
+
+                    String number = cursor.getString(numberIndex);
+
+                    ContactItem contactItem = new ContactItem(name, number);
+
+                    contactList.add(contactItem);
+
+                }
+
+                cursor.close();
+
+                contactAdapter.notifyDataSetChanged(); // Update the list view with the new data
+
+ 
+
+ 
+
+            } else {
+
+                // Null columns, clear the list and display a message
+
+                contactList.clear();
+
+                contactList.add(new ContactItem(noData, ""));
+
+                contactAdapter.notifyDataSetChanged();
+
+            }
+
+        } else{
+
+            // Null cursor, clear the list and display a message
+
+            contactList.clear();
+
+            contactList.add(new ContactItem(noData, noData));
+
+            contactAdapter.notifyDataSetChanged();
+
+        }
+
+    }
+
+}
+
+
+[9:30 AM] Pedreira, Brenda (Cognizant)
+
+Recycler view
+
+[9:35 AM] Pedreira, Brenda (Cognizant)
+
+package com.example.c56;
+
+ 
+
+import org.json.JSONException; //used for the contact picker
+
+import org.json.JSONObject; //used for the contact picker
+
+ 
+
+public class ContactItem {
+
+    private String name;
+
+    private String number;
+
+ 
+
+    public ContactItem(String name, String number){
+
+        this.name = name;
+
+        this.number = number;
+
+    }
+
+ 
+
+    public String getName(){
+
+        return name;
+
+    }
+
+ 
+
+    public String getNumber(){
+
+        return number;
+
+    }
+
+ 
+
+//Contact picker code starts here
+
+    public String toJsonString() {
+
+        try {
+
+            JSONObject jsonObject = new JSONObject();
+
+            jsonObject.put("name", name);
+
+            jsonObject.put("number", number);
+
+            return jsonObject.toString();
+
+        } catch (JSONException e) {
+
+            e.printStackTrace();
+
+        }
+
+        return null;
+
+    }
+
+}
+
+//Contact picker code ends here
+
+[9:35 AM] Pedreira, Brenda (Cognizant)
+
+contact item file
+
+[9:35 AM] Pedreira, Brenda (Cognizant)
+
+<?xml version="1.0" encoding="utf-8"?>
+
+<androidx.appcompat.widget.LinearLayoutCompat xmlns:android="http://schemas.android.com/apk/res/android"
+
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+
+    xmlns:tools="http://schemas.android.com/tools"
+
+    android:layout_width="match_parent"
+
+    android:layout_height="match_parent"
+
+    tools:context=".MainActivity"
+
+    android:orientation="vertical"
+
+    android:background="#372e29">
+
+ 
+
+    <TextView
+
+        android:id="@+id/greeting"
+
+        android:layout_width="match_parent"
+
+        android:layout_height="100dp"
+
+        android:padding="10dp"
+
+        android:gravity="center"
+
+        android:background="#726255"
+
+        android:fontFamily="@font/almendra_bold_italic"
+
+        android:text="Welcome to my contact app because my pc is old and senile."
+
+        android:textColor="#1a472a"
+
+        android:textSize="25sp"
+
+        tools:ignore="HardcodeText, TextContrastCheck"
+
+        />
+
+    <RelativeLayout
+
+        android:id="@+id/textViewLayout"
+
+        android:layout_width="match_parent"
+
+        android:layout_height="wrap_content"
+
+        android:layout_gravity="center_horizontal"
+
+        android:layout_margin="15dp"
+
+        android:padding="15dp"
+
+        android:clickable="true"
+
+        android:visibility="gone">
+
+ 
+
+        <ImageView
+
+            android:id="@+id/textViewImage"
+
+            android:layout_width="110dp"
+
+            android:layout_height="110dp"
+
+            tools:ignore="SpeakableTextPresentCheck,ContentDescription,KeyboardInaccessibleWidget"
+
+            />
+
+ 
+
+        <TextView
+
+            android:id="@+id/TextView"
+
+            android:layout_width="150dp"
+
+            android:layout_height="wrap_content"
+
+            android:layout_toEndOf="@+id/textViewImage"
+
+            android:layout_marginStart="40dp"
+
+            android:layout_marginTop="30dp"
+
+            android:gravity="center"
+
+            android:text="Contacts with TextView"
+
+            android:fontFamily="@font/almendra_bold_italic"
+
+            android:textSize="20sp"
+
+            android:textColor="#aaaaaa"
+
+            />
+
+ 
+
+    </RelativeLayout>
+
+ 
+
+    <RelativeLayout
+
+        android:id="@+id/listViewLayout"
+
+        android:layout_width="match_parent"
+
+        android:layout_height="wrap_content"
+
+        android:layout_gravity="center_horizontal"
+
+        android:layout_margin="15dp"
+
+        android:padding="15dp"
+
+        android:clickable="true"
+
+        android:visibility="gone">
+
+ 
+
+        <ImageView
+
+            android:id="@+id/listViewImage"
+
+            android:layout_width="110dp"
+
+            android:layout_height="110dp"
+
+            tools:ignore="SpeakableTextPresentCheck,ContentDescription,KeyboardInaccessibleWidget"
+
+            />
+
+        <TextView
+
+            android:layout_width="150dp"
+
+            android:layout_height="wrap_content"
+
+            android:layout_toEndOf="@+id/listViewImage"
+
+            android:layout_marginStart="40dp"
+
+            android:layout_marginTop="30dp"
+
+            android:gravity="center"
+
+            android:text="Contacts with ListView"
+
+            android:fontFamily="@font/almendra_bold_italic"
+
+            android:textSize="20sp"
+
+            android:textColor="#aaaaaa"
+
+            />
+
+ 
+
+    </RelativeLayout>
+
+ 
+
+    <RelativeLayout
+
+        android:id="@+id/recyclerViewLayout"
+
+        android:layout_width="match_parent"
+
+        android:layout_height="wrap_content"
+
+        android:layout_gravity="center_horizontal"
+
+        android:layout_margin="15dp"
+
+        android:padding="15dp"
+
+        android:clickable="true"
+
+        android:visibility="gone">
+
+ 
+
+        <ImageView
+
+            android:id="@+id/recyclerViewImage"
+
+            android:layout_width="110dp"
+
+            android:layout_height="110dp"
+
+            tools:ignore="SpeakableTextPresentCheck,ContentDescription,KeyboardInaccessibleWidget"
+
+            />
+
+ 
+
+        <TextView
+
+            android:id="@+id/RecyclerView"
+
+            android:layout_width="150dp"
+
+            android:layout_height="wrap_content"
+
+            android:layout_toEndOf="@+id/recyclerViewImage"
+
+            android:layout_marginStart="40dp"
+
+            android:layout_marginTop="30dp"
+
+            android:gravity="center"
+
+            android:text="Contacts with RecyclerView"
+
+            android:fontFamily="@font/almendra_bold_italic"
+
+            android:textSize="20sp"
+
+            android:textColor="#aaaaaa"
+
+            />
+
+ 
+
+    </RelativeLayout>
+
+ 
+
+    <RelativeLayout
+
+        android:id="@+id/returnContactLayout"
+
+        android:layout_width="match_parent"
+
+        android:layout_height="wrap_content"
+
+        android:layout_gravity="center"
+
+        android:gravity="center"
+
+        android:layout_margin="30dp"
+
+        android:visibility="visible">
+
+ 
+
+        <ImageView
+
+            android:id="@+id/imageViewPFP"
+
+            android:layout_width="150dp"
+
+            android:layout_height="150dp"
+
+            />
+
+ 
+
+        <TextView
+
+            android:id="@+id/name"
+
+            android:layout_width="wrap_content"
+
+            android:layout_height="wrap_content"
+
+            />
+
+ 
+
+        <TextView
+
+            android:id="@+id/number"
+
+            android:layout_width="wrap_content"
+
+            android:layout_height="wrap_content"
+
+            />
+
+ 
+
+        <Button
+
+            android:id="@+id/button"
+
+            android:layout_width="110dp"
+
+            android:layout_height="50dp"
+
+            android:backgroundTint="#1a472a"
+
+            android:fontFamily="@font/almendra_bold_italic"
+
+            android:text="Home"
+
+            android:textColor="#726255"
+
+            />
+
+ 
+
+    </RelativeLayout>
+
+</androidx.appcompat.widget.LinearLayoutCompat>
